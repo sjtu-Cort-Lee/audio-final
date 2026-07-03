@@ -1,0 +1,13 @@
+name: vtex-asr
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pytorch
+  - torchaudio
+  - pytorch-cuda=12.1
+  - pip
+  - pip:
+      - -r requirements.txt

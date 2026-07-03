@@ -1,0 +1,40 @@
+experiment_name: wav2vec2_finetune_1h
+seed: 42
+
+dataset:
+  name: openslr/librispeech_asr
+  config: clean
+  train_split: train.100[:1%]
+  eval_split: validation[:10%]
+  test_split: test[:10%]
+  text_column: text
+  audio_column: audio
+  sampling_rate: 16000
+  num_proc: 1
+
+model:
+  pretrained_name: facebook/wav2vec2-base
+  freeze_feature_encoder: true
+  freeze_base_model: false
+  freeze_encoder_except_last_n: 0
+  gradient_checkpointing: true
+
+training:
+  output_dir: checkpoints/wav2vec2_finetune_1h
+  logging_dir: logs/wav2vec2_finetune_1h
+  per_device_train_batch_size: 2
+  per_device_eval_batch_size: 4
+  gradient_accumulation_steps: 8
+  learning_rate: 0.0001
+  warmup_steps: 100
+  max_steps: 800
+  eval_steps: 100
+  save_steps: 200
+  logging_steps: 25
+  fp16: true
+  save_total_limit: 2
+  dataloader_num_workers: 2
+  group_by_length: true
+
+results:
+  dir: results/wav2vec2_finetune_1h

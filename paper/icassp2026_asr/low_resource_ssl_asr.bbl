@@ -1,0 +1,34 @@
+\begin{thebibliography}{1}
+
+\bibitem{baevski2020wav2vec}
+Alexei Baevski, Yuhao Zhou, Abdelrahman Mohamed, and Michael Auli,
+\newblock ``wav2vec 2.0: A framework for self-supervised learning of speech
+  representations,''
+\newblock in {\em Advances in Neural Information Processing Systems}, 2020,
+  vol.~33, pp. 12449--12460.
+
+\bibitem{graves2006ctc}
+Alex Graves, Santiago Fern{\'a}ndez, Faustino Gomez, and J{\"u}rgen
+  Schmidhuber,
+\newblock ``Connectionist temporal classification: Labelling unsegmented
+  sequence data with recurrent neural networks,''
+\newblock in {\em Proceedings of the 23rd International Conference on Machine
+  Learning}, 2006, pp. 369--376.
+
+\bibitem{panayotov2015librispeech}
+Vassil Panayotov, Guoguo Chen, Daniel Povey, and Sanjeev Khudanpur,
+\newblock ``Librispeech: An asr corpus based on public domain audio books,''
+\newblock in {\em 2015 IEEE International Conference on Acoustics, Speech and
+  Signal Processing (ICASSP)}, 2015, pp. 5206--5210.
+
+\bibitem{wolf2020transformers}
+Thomas Wolf, Lysandre Debut, Victor Sanh, Julien Chaumond, Clement Delangue,
+  Anthony Moi, Pierric Cistac, Tim Rault, Remi Louf, Morgan Funtowicz, Joe
+  Davison, Sam Shleifer, Patrick von Platen, Clara Ma, Yacine Jernite, Julien
+  Plu, Canwen Xu, Teven Le~Scao, Sylvain Gugger, Mariama Drame, Quentin Lhoest,
+  and Alexander~M. Rush,
+\newblock ``Transformers: State-of-the-art natural language processing,''
+\newblock in {\em Proceedings of the 2020 Conference on Empirical Methods in
+  Natural Language Processing: System Demonstrations}, 2020, pp. 38--45.
+
+\end{thebibliography}

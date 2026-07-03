@@ -1,0 +1,40 @@
+experiment_name: wav2vec2_smoke
+seed: 42
+
+dataset:
+  name: openslr/librispeech_asr
+  config: clean
+  train_split: train.100[:8]
+  eval_split: validation[:4]
+  test_split: test[:4]
+  text_column: text
+  audio_column: audio
+  sampling_rate: 16000
+  num_proc: 1
+
+model:
+  pretrained_name: facebook/wav2vec2-base
+  freeze_feature_encoder: true
+  freeze_base_model: true
+  freeze_encoder_except_last_n: 0
+  gradient_checkpointing: false
+
+training:
+  output_dir: checkpoints/wav2vec2_smoke
+  logging_dir: logs/wav2vec2_smoke
+  per_device_train_batch_size: 2
+  per_device_eval_batch_size: 2
+  gradient_accumulation_steps: 1
+  learning_rate: 0.001
+  warmup_steps: 0
+  max_steps: 2
+  eval_steps: 1
+  save_steps: 2
+  logging_steps: 1
+  fp16: true
+  save_total_limit: 1
+  dataloader_num_workers: 0
+  group_by_length: false
+
+results:
+  dir: results/wav2vec2_smoke
