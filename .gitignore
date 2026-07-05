@@ -9,14 +9,8 @@ __pycache__/
 
 .DS_Store
 
-# Large final model weights are tracked by Git LFS. Keep intermediate
-# training checkpoints and transient trainer artifacts out of normal commits.
-checkpoints/**/checkpoint-*/
-checkpoints/**/runs/
-checkpoints/**/optimizer.pt
-checkpoints/**/scheduler.pt
-checkpoints/**/rng_state*.pth
-checkpoints/**/scaler.pt
+# Generated model checkpoints are not part of the final submission package.
+checkpoints/
 
 # LaTeX build byproducts. Keep source files, figures, and final PDFs.
 *.aux
@@ -27,6 +21,3 @@ checkpoints/**/scaler.pt
 *.out
 *.synctex.gz
 *.xdv
-
-# Duplicate unpacked conference template backups are not needed for the repo.
-templates/*_backup_*/
