@@ -1,23 +1,24 @@
-# 基于 wav2vec 2.0 的低资源英文 ASR Baseline
+# 基于 wav2vec 2.0 的低资源英文 ASR
 
-这是课程大作业中同学 A 的交接包，项目目标是实现一个基于语音自监督表征的低资源英文 ASR baseline。当前仓库包含训练/评测代码、配置文件、实验结果、论文草稿材料，以及两个可直接评测的最终模型 checkpoint。
+本项目实现了一个基于语音自监督表征的低资源英文自动语音识别系统。系统使用 `facebook/wav2vec2-base` 作为声学 encoder，在其上训练 CTC 字符分类头，并在 LibriSpeech clean 子集上比较冻结 encoder 与微调 encoder 两种设置。
 
-GitHub 地址：
+论文位于 `paper/icassp2026_asr/`，其中 `low_resource_ssl_asr.tex` 使用仓库内 `templates/icassp2026/` 提供的 ICASSP 2026 LaTeX 模板组件编写，`low_resource_ssl_asr.pdf` 为提交用 PDF。
+
+## 目录结构
 
 ```text
-https://github.com/wuhaotian0508/audio-final
+configs/      实验配置文件
+scripts/      训练、评测和缓存准备脚本
+src/          ASR 训练、评测和工具代码
+results/      已保存的指标和预测文本
+checkpoints/  训练后模型目录；模型权重由 Git LFS 管理
+paper/        ICASSP 2026 风格论文源码、图表和 PDF
+templates/    ICASSP 2026 官方模板材料
 ```
 
-下面所有命令都默认已经进入解压后的项目根目录：
+## 克隆仓库
 
-```bash
-git clone https://github.com/wuhaotian0508/audio-final.git
-cd audio-final
-```
-
-## Git LFS 说明
-
-最终模型权重 `model.safetensors` 单文件超过 GitHub 普通 Git 的 100 MB 限制，因此仓库使用 Git LFS 管理模型权重。第一次克隆前建议先安装并启用 Git LFS：
+模型权重 `model.safetensors` 由 Git LFS 管理。首次克隆前建议安装并启用 Git LFS：
 
 ```bash
 git lfs install
@@ -26,83 +27,46 @@ cd audio-final
 git lfs pull
 ```
 
-如果没有拉到真实模型文件，`checkpoints/*/model.safetensors` 可能只是很小的 LFS pointer 文件，此时直接执行 `git lfs pull` 即可。
+如果 `checkpoints/*/model.safetensors` 只有一百多字节，说明当前文件仍是 LFS pointer，需要重新执行 `git lfs pull`。
 
-## 仓库内容
+### Windows 克隆问题
 
-本仓库包含代码、配置、实验结果文件、论文草稿材料，以及两个已经训练好的模型目录：
+旧版本仓库中部分结果文件使用了类似 `test_:10%_metrics.json` 的文件名。冒号 `:` 是 Windows 文件系统非法字符，Git for Windows 会在 checkout 阶段报错：
 
 ```text
-checkpoints/wav2vec2_frozen_1h/
-checkpoints/wav2vec2_finetune_1h/
+error: invalid path 'results/wav2vec2_finetune_1h/test_:10%_metrics.json'
+fatal: unable to checkout working tree
 ```
 
-其中：
+本版本已将这些文件改名为跨平台安全的形式，例如 `test_10pct_metrics.json`、`test_10pct_predictions.tsv` 和 `test_4_metrics.json`，并在 `src/evaluate.py` 中加入 split 名称清洗逻辑，后续评测不会再生成带冒号的文件名。
 
-- `wav2vec2_frozen_1h`：冻结 wav2vec 2.0 encoder 的对照模型。
-- `wav2vec2_finetune_1h`：微调后的主实验模型。
+如果必须处理旧提交，建议在 WSL 或 Linux 环境中 checkout 后执行改名，再提交清理结果：
 
-本仓库没有包含 Hugging Face 的数据/模型缓存、本地 Python 依赖缓存、TensorBoard 日志、中间训练 checkpoint 和 optimizer 状态。这些内容体积较大，可以根据下面命令重新生成。
-
-## 方法说明
-
-基模来源：
-
-- 使用 Hugging Face Transformers 上的 `facebook/wav2vec2-base`。
-- 该模型是 wav2vec 2.0 Base，预训练于无标注语音数据。
-- 在本项目中，它作为语音自监督 encoder，用于提取上下文语音表征。
-
-ASR 建模方式：
-
-- 使用 `Wav2Vec2ForCTC` 加载预训练 encoder。
-- 在 encoder 顶部接一个随机初始化的 CTC 分类头。
-- CTC 词表由训练集文本自动构建。
-- 音频通过 Hugging Face `datasets` 的 audio pipeline 统一到 16 kHz。
-- 文本会被规范化为小写字母、空格和撇号。空格在 CTC 中用 `|` 作为 word delimiter token。
-
-数据设置：
-
-- 数据集：`openslr/librispeech_asr`
-- 配置：`clean`
-- 训练集：`train.100[:1%]`
-- 验证集：`validation[:10%]`
-- 测试集：`test[:10%]`
-
-训练设置：
-
-- `wav2vec2_frozen_1h`：冻结整个 wav2vec 2.0 base model，只训练随机初始化的 CTC head。
-- `wav2vec2_finetune_1h`：冻结 convolutional feature extractor，微调 Transformer encoder 和 CTC head。
-- 使用 fp16 混合精度训练。
-- 实验在单张 RTX 4090 上完成。
-
-评测指标：
-
-- WER：Word Error Rate，词错误率。
-- CER：Character Error Rate，字符错误率。
+```bash
+git mv 'results/wav2vec2_finetune_1h/test_:10%_metrics.json' results/wav2vec2_finetune_1h/test_10pct_metrics.json
+git mv 'results/wav2vec2_finetune_1h/test_:10%_predictions.tsv' results/wav2vec2_finetune_1h/test_10pct_predictions.tsv
+git mv 'results/wav2vec2_frozen_1h/test_:10%_metrics.json' results/wav2vec2_frozen_1h/test_10pct_metrics.json
+git mv 'results/wav2vec2_frozen_1h/test_:10%_predictions.tsv' results/wav2vec2_frozen_1h/test_10pct_predictions.tsv
+git mv 'results/wav2vec2_smoke/test_:4_metrics.json' results/wav2vec2_smoke/test_4_metrics.json
+git mv 'results/wav2vec2_smoke/test_:4_predictions.tsv' results/wav2vec2_smoke/test_4_predictions.tsv
+```
 
 ## 环境配置
 
-推荐使用 conda：
+推荐使用 conda 创建环境：
 
 ```bash
 conda env create -f environment.yml
 conda activate vtex-asr
 ```
 
-如果当前 shell 没有初始化 conda，可以先执行：
-
-```bash
-source "$(conda info --base)/etc/profile.d/conda.sh"
-conda activate vtex-asr
-```
-
-如果机器上已经有可用的 CUDA PyTorch 环境，也可以只安装 Python 依赖：
+如果已有可用的 CUDA PyTorch 环境，也可以只安装 Python 依赖：
 
 ```bash
 pip install -r requirements.txt
 ```
 
-验证 PyTorch 是否能看到 GPU：
+检查 PyTorch 是否可以使用 GPU：
 
 ```bash
 python - <<'PY'
@@ -113,148 +77,44 @@ print("gpu:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "n
 PY
 ```
 
-## 缓存数据和原始基模
-
-下面命令会下载/缓存 LibriSpeech 数据和原始 `facebook/wav2vec2-base` 模型：
+默认 Hugging Face 缓存目录为项目内 `.cache/huggingface/`。可以先缓存数据集和原始 wav2vec 2.0 模型：
 
 ```bash
 bash scripts/prepare_cache.sh configs/wav2vec2_frozen_1h.yaml
 ```
 
-默认缓存目录为：
+## 运行方式
 
-```text
-.cache/huggingface/
-```
-
-如果只想评测包内已经训练好的 checkpoint，也仍然需要在第一次评测时下载对应的测试集数据。
-
-## Smoke Test
-
-在新机器上建议先跑 smoke test，用来检查数据加载、模型加载、训练循环、checkpoint 保存和评测流程是否正常：
+建议先运行 smoke test 检查数据加载、训练、保存和评测流程：
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES=0 bash scripts/train.sh configs/wav2vec2_smoke.yaml
-
-PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES=0 bash scripts/evaluate.sh \
-  configs/wav2vec2_smoke.yaml \
-  checkpoints/wav2vec2_smoke
+PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES=0 bash scripts/evaluate.sh configs/wav2vec2_smoke.yaml checkpoints/wav2vec2_smoke
 ```
 
-smoke test 只训练 2 步，指标没有论文意义，只用于确认代码能跑通。
-
-## 训练冻结 Encoder 的 Baseline
-
-这个实验冻结 wav2vec 2.0 encoder，只训练 CTC head，是一个对照实验：
+训练冻结 encoder 的 baseline：
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES=0 bash scripts/train.sh configs/wav2vec2_frozen_1h.yaml
+PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES=0 bash scripts/evaluate.sh configs/wav2vec2_frozen_1h.yaml checkpoints/wav2vec2_frozen_1h
 ```
 
-评测冻结模型：
-
-```bash
-PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES=0 bash scripts/evaluate.sh \
-  configs/wav2vec2_frozen_1h.yaml \
-  checkpoints/wav2vec2_frozen_1h
-```
-
-主要输出：
-
-```text
-checkpoints/wav2vec2_frozen_1h/
-results/wav2vec2_frozen_1h/eval_metrics.json
-results/wav2vec2_frozen_1h/test_:10%_metrics.json
-results/wav2vec2_frozen_1h/eval_predictions.tsv
-```
-
-## 训练微调模型
-
-这是主实验。该设置冻结 feature extractor，微调 Transformer encoder 和 CTC head：
+训练微调 encoder 的主实验模型：
 
 ```bash
 PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES=0 bash scripts/train.sh configs/wav2vec2_finetune_1h.yaml
+PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES=0 bash scripts/evaluate.sh configs/wav2vec2_finetune_1h.yaml checkpoints/wav2vec2_finetune_1h
 ```
 
-评测微调模型：
+生成的评测结果会写入对应的 `results/<experiment_name>/` 目录。
+
+## 编译论文
+
+如需重新生成论文 PDF：
 
 ```bash
-PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES=0 bash scripts/evaluate.sh \
-  configs/wav2vec2_finetune_1h.yaml \
-  checkpoints/wav2vec2_finetune_1h
+cd paper/icassp2026_asr
+latexmk -xelatex -interaction=nonstopmode low_resource_ssl_asr.tex
 ```
 
-主要输出：
-
-```text
-checkpoints/wav2vec2_finetune_1h/
-results/wav2vec2_finetune_1h/eval_metrics.json
-results/wav2vec2_finetune_1h/test_:10%_metrics.json
-results/wav2vec2_finetune_1h/eval_predictions.tsv
-```
-
-## 直接评测包内模型
-
-如果不想重新训练，只想复用包内已经训练好的模型，可以直接运行：
-
-```bash
-PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES=0 bash scripts/evaluate.sh \
-  configs/wav2vec2_frozen_1h.yaml \
-  checkpoints/wav2vec2_frozen_1h
-
-PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES=0 bash scripts/evaluate.sh \
-  configs/wav2vec2_finetune_1h.yaml \
-  checkpoints/wav2vec2_finetune_1h
-```
-
-## 当前实验结果
-
-更完整的结果说明见 [docs/experiment_summary.md](docs/experiment_summary.md)。
-
-| 设置 | 可训练参数量 | Eval WER | Eval CER | Test WER | Test CER |
-|---|---:|---:|---:|---:|---:|
-| Frozen wav2vec2 + CTC | 24,608 | 0.9965 | 0.7308 | 0.9955 | 0.6998 |
-| Fine-tuned wav2vec2 + CTC | 90,195,872 | 0.2917 | 0.0847 | 0.2573 | 0.0747 |
-
-核心结论：
-
-```text
-在 1% LibriSpeech 低资源设置下，只训练随机初始化的 CTC head 几乎无法取得有效识别结果；
-微调 wav2vec 2.0 encoder 后，WER 和 CER 均显著下降。
-```
-
-## 可选：5% 数据量实验
-
-如果同学 B 想补充数据规模消融，可以运行：
-
-```bash
-PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES=0 bash scripts/train.sh configs/wav2vec2_finetune_5pct.yaml
-
-PYTHONDONTWRITEBYTECODE=1 CUDA_VISIBLE_DEVICES=0 bash scripts/evaluate.sh \
-  configs/wav2vec2_finetune_5pct.yaml \
-  checkpoints/wav2vec2_finetune_5pct
-```
-
-这个实验用于比较 `train.100[:1%]` 和 `train.100[:5%]` 的低资源数据规模影响。
-
-## 建议同学 B 做什么
-
-同学 B 不需要重新搭系统，建议重点做下面几件事：
-
-- 复核 `results/` 里的 WER/CER 数字，并整理成论文表格。
-- 从 `eval_predictions.tsv` 和 `test_:10%_predictions.tsv` 中挑选代表性错误案例。
-- 写错误分析，例如拼写近似错误、专名错误、词边界错误、长句漏词等。
-- 如时间允许，运行 `configs/wav2vec2_finetune_5pct.yaml`，补充 1% vs 5% 的数据规模消融。
-- 将 frozen vs fine-tuned 对比作为核心消融：低资源 ASR 中，微调 SSL encoder 明显优于只训练 CTC head。
-
-## 目录说明
-
-```text
-configs/      实验配置
-scripts/      训练、评测、环境检查脚本
-src/          训练和评测代码
-docs/         交接文档和实验总结
-results/      指标和预测文本
-checkpoints/  包内包含的 frozen 和 fine-tuned 模型
-paper/        ICASSP 风格论文草稿、图表和 PDF
-```
+论文作者区包含小组成员姓名和学号；使用 XeLaTeX 可正确渲染中文姓名。

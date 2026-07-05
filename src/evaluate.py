@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 
 import torch
@@ -13,6 +14,12 @@ from .asr_baseline.config import load_config, mkdir
 from .asr_baseline.data import load_split
 from .asr_baseline.metrics import compute_wer_cer
 from .asr_baseline.text import normalize_text
+
+
+def safe_split_name(split: str) -> str:
+    name = split.replace("%", "pct")
+    name = re.sub(r"[^A-Za-z0-9._-]+", "_", name).strip("_")
+    return name or "split"
 
 
 def main() -> None:
@@ -75,7 +82,7 @@ def main() -> None:
 
     metrics = compute_wer_cer(predictions, references)
     results_dir = mkdir(config["results"]["dir"])
-    split_name = data_cfg[args.split_key].replace("/", "_").replace("[", "_").replace("]", "")
+    split_name = safe_split_name(data_cfg[args.split_key])
     with (results_dir / f"{split_name}_metrics.json").open("w", encoding="utf-8") as f:
         json.dump(metrics, f, indent=2)
     with (results_dir / f"{split_name}_predictions.tsv").open("w", encoding="utf-8") as f:

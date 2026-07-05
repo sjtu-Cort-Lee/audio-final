@@ -1,11 +1,21 @@
 % ICASSP 2026 paper draft for the low-resource ASR project.
 \documentclass{article}
 \usepackage{spconf,amsmath,graphicx,booktabs,array,url,tikz}
+\usepackage{iftex}
+\ifXeTeX
+  \usepackage{fontspec}
+  \IfFontExistsTF{Microsoft YaHei}
+    {\newfontfamily\cjkfont{Microsoft YaHei}}
+    {\newfontfamily\cjkfont{SimSun}}
+  \newcommand{\groupmembers}{{\cjkfont 王栎翔} 524531910041\\{\cjkfont 蔡睿} 524031910611\\{\cjkfont 吴浩天} 524030910201}
+\else
+  \newcommand{\groupmembers}{Wang Lixiang 524531910041\\Cai Rui 524031910611\\Wu Haotian 524030910201}
+\fi
 \usetikzlibrary{arrows.meta,positioning}
 
 \title{LOW-RESOURCE ENGLISH ASR WITH CONTINUOUS WAV2VEC 2.0 REPRESENTATIONS}
-\name{Author Name(s)}
-\address{Course Project, Institution Name}
+\name{Wang Lixiang, Cai Rui, and Wu Haotian}
+\address{Course Project Group\\\groupmembers}
 
 \begin{document}
 \maketitle
@@ -25,7 +35,7 @@ Low-resource automatic speech recognition requires learning an acoustic-to-text 
 
 This project studies how effectively continuous self-supervised representations support low-resource English ASR. We implement a compact and reproducible baseline using wav2vec 2.0 Base and a CTC output layer \cite{graves2006ctc}. The main comparison is between freezing the pretrained encoder and fine-tuning it with limited labeled data. This comparison isolates whether the pretrained representation is directly linearly separable enough for character recognition or whether supervised adaptation of the encoder is required.
 
-The contribution is threefold: (1) a complete low-resource ASR pipeline using LibriSpeech, wav2vec 2.0, CTC training, and WER/CER evaluation; (2) a controlled frozen-versus-fine-tuned comparison; and (3) an error analysis that contrasts local spelling errors with complete decoding failures.
+The contribution is threefold: (1) a complete low-resource ASR pipeline using LibriSpeech, wav2vec 2.0, CTC training, and WER/CER evaluation; (2) a controlled frozen-versus-fine-tuned comparison; and (3) an error analysis that contrasts local spelling errors with complete decoding failures. The submitted materials include the ICASSP-style paper source and PDF, training and evaluation code, experiment configurations, result files, and checkpoint metadata needed to reproduce the reported setting.
 
 \section{System Design}
 \label{sec:method}
@@ -71,9 +81,9 @@ We evaluate two parameter-update strategies. The frozen baseline freezes the ent
 \section{Experimental Setup}
 \label{sec:setup}
 
-The experiments are implemented with PyTorch and Hugging Face Transformers \cite{wolf2020transformers}. Training uses mixed precision on a single GPU. The frozen baseline is trained with batch size 2, learning rate $10^{-3}$, and 400 optimization steps. The fine-tuned model uses batch size 2, gradient accumulation over 8 steps, learning rate $10^{-4}$, 100 warmup steps, and 800 optimization steps. The fine-tuned model uses gradient checkpointing to reduce memory usage.
+The experiments are implemented with PyTorch and Hugging Face Transformers \cite{wolf2020transformers}. Training uses mixed precision on a single GPU with random seed 42. Both systems are trained for 800 optimization steps with 100 warmup steps. The frozen baseline uses per-device batch size 8, gradient accumulation over 2 steps, and learning rate $10^{-3}$. The fine-tuned model uses per-device batch size 2, gradient accumulation over 8 steps, and learning rate $10^{-4}$. The fine-tuned model uses gradient checkpointing to reduce memory usage.
 
-We report word error rate (WER) and character error rate (CER), the standard edit-distance based ASR metrics. Lower values indicate better recognition accuracy. We also report the number of trainable parameters to show the difference in optimization capacity between the two settings.
+We report word error rate (WER) and character error rate (CER), the standard edit-distance based ASR metrics. Lower values indicate better recognition accuracy. We also report the number of trainable parameters to show the difference in optimization capacity between the two settings. The repository stores the exact YAML configurations, JSON metric files, TSV prediction files, and trained checkpoint directories used by this report.
 
 \section{Results and Analysis}
 \label{sec:results}
@@ -148,8 +158,6 @@ The experiment focuses on continuous hidden-state representations rather than di
 
 We built and evaluated a low-resource English ASR baseline using wav2vec 2.0 continuous self-supervised representations and CTC training. The frozen-encoder system fails to produce reliable transcriptions, while fine-tuning the wav2vec 2.0 Transformer encoder reduces test WER from 99.55\% to 25.73\%. The results show that pretrained speech representations are highly useful for low-resource ASR, but effective use requires supervised adaptation rather than only training a shallow classification head. Future work should compare different SSL encoders, different representation layers, and discrete-unit variants under the same evaluation protocol.
 
-\section{References}
-\label{sec:refs}
 \bibliographystyle{IEEEbib}
 \bibliography{refs}
 
